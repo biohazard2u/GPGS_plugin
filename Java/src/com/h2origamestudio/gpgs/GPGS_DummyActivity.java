@@ -7,7 +7,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Window;
 
-public class GPGS_DummyActivity extends Activity {
+/**
+ * This is a helper activity class. It is to help with user connection issues. 
+ */
+public class GPGS_DummyActivity extends Activity { 
 
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -18,6 +21,7 @@ public class GPGS_DummyActivity extends Activity {
 
 	protected void onStart() {
 		super.onStart();
+		Log.d("GPGS_BaseUtil", "GPGS_DummyActivity - onStart");
 		try {
 			if (GPGS_PluginAdapter.mConnectionResult != null)
 				GPGS_PluginAdapter.mConnectionResult.startResolutionForResult(this,
@@ -35,6 +39,7 @@ public class GPGS_DummyActivity extends Activity {
 
 	public void onActivityResult(int request, int response, Intent data) {
 		super.onActivityResult(request, response, data);
+		Log.d("GPGS_BaseUtil", "GPGS_DummyActivity - onActivityResult");
 		if (GPGS_PluginAdapter.mCurrentGPGSAdapter != null)
 			GPGS_PluginAdapter.mCurrentGPGSAdapter.onActivityResult(request, response, data);
 		finish();

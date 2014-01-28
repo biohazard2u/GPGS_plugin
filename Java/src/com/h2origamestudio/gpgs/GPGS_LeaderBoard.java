@@ -4,21 +4,17 @@ import android.content.Intent;
 import com.google.android.gms.games.leaderboard.OnScoreSubmittedListener;
 import com.google.android.gms.games.leaderboard.SubmitScoreResult;
 
+/**
+ * This class is to allow the leader board functionality into Unity3D Game Engine.	
+ * @author Marcos Zalacain 
+ */
 public class GPGS_LeaderBoard extends GPGS_BaseUtil implements OnScoreSubmittedListener {
 
 	// We declare a TAG constant to follow debug convention.
 	//private static String TAG = "GPGS_LeaderBoard";
 	
 	// PluginAdapter reference.
-	GPGS_PluginAdapter adapter;
-
-	/**
-	 * Constructor 
-	 * @param adapter - a reference to the GPGS_PluginAdapter.
-	 */
-	GPGS_LeaderBoard(GPGS_PluginAdapter adapter) {
-		this.adapter = adapter;
-	}
+	GPGS_PluginAdapter adapter = GPGS_PluginAdapter.mCurrentGPGSAdapter;
 
 	/**
 	 * Our method to submit Score Immediate.
@@ -43,6 +39,7 @@ public class GPGS_LeaderBoard extends GPGS_BaseUtil implements OnScoreSubmittedL
 
 	/**
 	 * Our method to show leader-boards.
+	 * Note that we don't care at this moment about the result of the activity we're launching with startActivityForResult.
 	 */
 	public void showLeaderBoards(String leaderBoardId) {
 		if (!adapter.mSignedIn)
@@ -55,6 +52,7 @@ public class GPGS_LeaderBoard extends GPGS_BaseUtil implements OnScoreSubmittedL
 
 	/**
 	 * Our method to show all leader-boards.
+	 * Note that we don't care at this moment about the result of the activity we're launching with startActivityForResult.
 	 */
 	public void showAllLeaderBoards() {
 		if (!adapter.mSignedIn)

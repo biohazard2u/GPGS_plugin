@@ -34,15 +34,14 @@ public class GPGS_Multiplayer extends GPGS_BaseUtil implements
 	// private static String TAG = "GPGS_Multiplayer";
 
 	// PluginAdapter reference.
-	GPGS_PluginAdapter adapter;
+	GPGS_PluginAdapter adapter = GPGS_PluginAdapter.mCurrentGPGSAdapter;
 
 	// At least 2 players required for our game.
 	final static int MIN_PLAYERS = 2;
 	// Minimum number of player to be connected to start a game.
 	final static int MIN_NUMB_PLAYERS_CONNECTED_TO_START_GAME = 2;
 
-	// If we got an invitation id when we connected to the games client, it's
-	// here.
+	// If we got an invitation id when we connected to the games client, it's here.
 	// Otherwise, it's null. (IncomingInvitationId)
 	String mInvitationId;
 	// A HashMap with all Rooms created.
@@ -68,16 +67,6 @@ public class GPGS_Multiplayer extends GPGS_BaseUtil implements
 	// flag indicating whether we're dismissing the waiting room because the
 	// game is starting
 	// boolean mWaitRoomDismissedFromCode = false;
-
-	/**
-	 * Constructor
-	 * 
-	 * @param adapter
-	 *            - a reference to the GPGS_PluginAdapter.
-	 */
-	GPGS_Multiplayer(GPGS_PluginAdapter adapter) {
-		this.adapter = adapter;
-	}
 
 	// ****************
 	// Update methods:
@@ -430,6 +419,14 @@ public class GPGS_Multiplayer extends GPGS_BaseUtil implements
 		// We send a Message to Unity so we show a pop-up on the screen.
 		UnitySendMessageSafe("onInvitationReceived", invitation.getInvitationId());
 		debugLog("onInvitationReceived - invitation: " + invitation.getInvitationId());
+	}
+	
+	/**
+	 * Overriding method. New 4.1 google play services library version added!!
+	 */
+	@Override
+	public void onInvitationRemoved(String arg0) {
+		// TODO Auto-generated method stub		
 	}
 
 	/*

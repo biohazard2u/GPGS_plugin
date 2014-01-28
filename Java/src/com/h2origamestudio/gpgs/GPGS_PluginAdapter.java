@@ -23,6 +23,8 @@ import com.google.android.gms.games.OnSignOutCompleteListener;
 import com.google.android.gms.games.multiplayer.Invitation;
 import com.google.android.gms.games.multiplayer.realtime.Room;
 import com.google.android.gms.games.multiplayer.realtime.RoomConfig;
+import com.google.android.gms.games.multiplayer.turnbased.TurnBasedMatch;
+import com.google.android.gms.games.multiplayer.turnbased.TurnBasedMatchConfig;
 import com.google.android.gms.plus.PlusClient;
 import com.unity3d.player.UnityPlayer;
 
@@ -44,7 +46,7 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 	// Activity.
 	public static Activity mParentActivity = null;
 	// Activity to launch.
-	public static Activity mDummyActivity = null; 
+	//public static Activity mDummyActivity = null; 
 	// Reference to object of this class.
 	public static GPGS_PluginAdapter mCurrentGPGSAdapter = null; 
 	 
@@ -53,6 +55,7 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 	GPGS_LeaderBoard mLeaderBoard = null;
 	GPGS_CloudSave mCloudSave = null;
 	GPGS_Multiplayer mMultiplayer = null;
+	GPGS_TurnBasedMultiplayer mTBMultiplayer = null;
 
 	// Client objects we manage. If a given client is not enabled, it is null.
 	GamesClient mGamesClient = null;
@@ -80,12 +83,15 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 	// Whether to automatically try to sign in on onStart().
 	boolean mAutoSignIn = true;
 
-	// Request code for Invitation in-box.
-	final static int RC_INVITATION_INBOX = 10001;
 	// Request code for the "select players" UI.
 	final static int RC_SELECT_PLAYERS = 10000;
+	// Request code for Invitation in-box.
+	final static int RC_INVITATION_INBOX = 10001;
 	// Arbitrary request code for the waiting room UI.
 	final static int RC_WAITING_ROOM = 10002;	
+	// Response Codes for Turned Based tasks.
+	final static int RC_TB_SELECT_PLAYERS = 10003;
+    final static int RC_TB_LOOK_AT_MATCHES = 10004;
 
 	/*
 	 * Whether user has specifically requested that the sign-in process begin.
@@ -109,16 +115,17 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 	boolean mSignedIn = false;	
 	// isGooglePlayServicesAvailable error code.
 	static int gErrorCode = 0;
-
+ 
 	/**
 	 * Constructor. Sets the Unity current Activity.
 	 */
 	public GPGS_PluginAdapter() {
 		mCurrentGPGSAdapter = this; 
-		 mAchievements = new GPGS_Achievements(mCurrentGPGSAdapter);
-		 mLeaderBoard = new GPGS_LeaderBoard(mCurrentGPGSAdapter);
-		 mCloudSave = new GPGS_CloudSave(mCurrentGPGSAdapter);
-		 mMultiplayer = new GPGS_Multiplayer(mCurrentGPGSAdapter);
+		 mAchievements = new GPGS_Achievements();  
+		 mLeaderBoard = new GPGS_LeaderBoard();
+		 mCloudSave = new GPGS_CloudSave();
+		 mMultiplayer = new GPGS_Multiplayer();
+		 mTBMultiplayer = new GPGS_TurnBasedMultiplayer();
 		mParentActivity = UnityPlayer.currentActivity;
 		debugLog("ParentActivity name is " + mParentActivity.getClass().getName());
 	}	
@@ -223,8 +230,7 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 		mConnectedClients |= mClientCurrentlyConnecting;
 
 		// =========================================================================ROOM RELATED
-		// If this was the games client and it came with an invite, store it for
-		// later retrieval.
+		// If this was the games client and it came with an invite, store it for later retrieval.
 		if (mClientCurrentlyConnecting == CLIENT_GAMES && connectionHint != null) {
 			debugLog("onConnected: connection hint provided. Checking for invite."); 
 			Invitation inv = connectionHint.getParcelable(GamesClient.EXTRA_INVITATION);
@@ -234,26 +240,30 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 				mMultiplayer.mInvitationId = inv.getInvitationId();
 				debugLog("Invitation ID: " + mMultiplayer.mInvitationId);
 
-				// 
-				// We create a builder of room configuration, a
-				// RoomConfigBuilder.
+				// We create a builder of room configuration, a RoomConfigBuilder.
 				RoomConfig.Builder roomConfigBuilder = mMultiplayer.makeBasicRoomConfigBuilder();
 				// we set the ID of the invitation to accept. 
 				roomConfigBuilder.setInvitationIdToAccept(mMultiplayer.mInvitationId);
-				// we make our client to join the real-time room by accepting an
-				// invitation.
+				// we make our client to join the real-time room by accepting an invitation.
 				mGamesClient.joinRoom(roomConfigBuilder.build());
 				// we prevent screen from sleeping during handshake. 
 				// Don't forget to clear this flag at the end of game-play or
 				// when the game is cancelled.
 				mParentActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); 
 
-				// We register an OnInvitationReceivedListener after the player
-				// signs in successfully.
+				// We register an OnInvitationReceivedListener after the player signs in successfully.
 				mGamesClient.registerInvitationListener(mMultiplayer);
-				// =================================================================ROOM RELATED
 			}
 		}
+		// =========================================================================ROOM RELATED
+		
+		// =========================================================================TURN BASED RELATED
+		// This is *NOT* required; if you do not register a handler for
+        // invitation events or match updates, you will get standard notifications instead.
+        // Standard notifications may be preferable behaviour in many cases.
+		mGamesClient.registerInvitationListener(mTBMultiplayer);
+		mGamesClient.registerMatchUpdateListener(mTBMultiplayer);
+		// =========================================================================TURN BASED RELATED
 
 		// connect the next client in line, if any.
 		connectNextClient();
@@ -432,7 +442,9 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 		}
 	}
 
-	/** ?? */
+	/** 
+	 * We reset values if all clients now connected
+	 *  */
 	void succeedSignIn() {
 		debugLog("All requested clients connected. Sign-in succeeded!");
 		mSignedIn = true;
@@ -504,17 +516,18 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 			Log.e("GameHelper", "giveUp() called with no mConnectionResult");
 			UnitySendMessageSafe("GPGSAuthenticationResult", "error");
 		}
-	}
+	} 
 
 	// ACTIVITY RESULT
 	/**
-	 * Handle activity result. Call this method from your Activity's
-	 * onActivityResult callback. If the activity result pertains to the sign-in
-	 * process, processes it appropriately. MZ
+	 * Handle activity result. </br></br>
+	 * It's a fake activity result because it ain't place in an Activity. 
+	 * It is call by the dummy and response activities.
 	 */
 	public void onActivityResult(int requestCode, int responseCode,	Intent intent) {
-		if (responseCode != Activity.RESULT_CANCELED) {
-			if (requestCode == RC_RESOLVE) {
+		debugLog("ACTIVITY RESULT");
+		if (requestCode == RC_RESOLVE) {
+			if (responseCode != Activity.RESULT_CANCELED) {			
 				// We're coming back from an activity that was launched to resolve a
 				// connection problem. For example, the sign-in UI.
 				mExpectingActivityResult = false;
@@ -621,6 +634,48 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 				debugLog("requestCode == RC_WAITING_ROOM + responseCode == Activity.RESULT_LEFT_ROOM");
 			}
 		}
+		
+		// We got the result from the "Turned based select players" UI and we're ready to create the Turned Based Match.
+		if (requestCode == RC_TB_SELECT_PLAYERS) {
+			if (responseCode != Activity.RESULT_OK) {
+				// user cancelled 
+				return;
+			}
+			// get the invitee list
+			final ArrayList<String> invitees = intent.getStringArrayListExtra(GamesClient.EXTRA_PLAYERS);
+
+			// get auto-match criteria
+			Bundle autoMatchCriteria = null;
+			int minAutoMatchPlayers = intent.getIntExtra(GamesClient.EXTRA_MIN_AUTOMATCH_PLAYERS, 0);
+			int maxAutoMatchPlayers = intent.getIntExtra(GamesClient.EXTRA_MAX_AUTOMATCH_PLAYERS, 0);
+			if (minAutoMatchPlayers > 0) {
+				autoMatchCriteria = RoomConfig.createAutoMatchCriteria(minAutoMatchPlayers, maxAutoMatchPlayers, 0);
+			} else {
+				autoMatchCriteria = null;
+			}
+
+			TurnBasedMatchConfig tbmc = TurnBasedMatchConfig.builder()
+					.addInvitedPlayers(invitees)
+					.setAutoMatchCriteria(autoMatchCriteria).build();
+			
+			// kick the match off
+			mGamesClient.createTurnBasedMatch(mTBMultiplayer, tbmc);
+			debugLog("requestCode == RC_TB_SELECT_PLAYERS - createTurnBasedMatch executed");
+		}
+		
+		// Returning from the Game inbox.
+		if (requestCode == RC_TB_LOOK_AT_MATCHES) {			
+            if (responseCode != Activity.RESULT_OK) {
+                // user cancelled
+                return;
+            }
+            TurnBasedMatch match = intent.getParcelableExtra(GamesClient.EXTRA_TURN_BASED_MATCH);
+            if (match != null) {
+            	mTBMultiplayer.updateMatch(match);
+            }
+            debugLog("requestCode == RC_TB_LOOK_AT_MATCHES - matchId = " + match.getMatchId());
+        }
+
 	}
 	
 	//********************************//
@@ -644,7 +699,7 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 	// Multiplayer:
 	public String getCurrRoomId() { return mMultiplayer.getCurrRoomId(); } 
 	public String getCurrRoomParticipantCreatorId() { return mMultiplayer.getCurrRoomParticipantCreatorId(); }
-	public String getCurrRoomParticipantJoinerId() { return mMultiplayer.getCurrRoomParticipantJoinerId(); }
+	public String getCurrRoomParticipantJoinerId() { return mMultiplayer.getCurrRoomParticipantJoinerId(); } 
 	public String getCurrRoomParticipantCreatorDN() { return mMultiplayer.getCurrRoomParticipantCreatorDN(); }
 	public String getCurrRoomParticipantJoinerDN() { return mMultiplayer.getCurrRoomParticipantJoinerDN(); }
 	public void acceptIncomingInvitation() { mMultiplayer.acceptIncomingInvitation(); }
@@ -654,4 +709,18 @@ public class GPGS_PluginAdapter extends GPGS_BaseUtil implements GooglePlayServi
 	public int sendReliableRealTimeMessage(byte[] messageData, String roomId, String recipientParticipantId) { 
 		return mMultiplayer.sendReliableRealTimeMessage(messageData, roomId, recipientParticipantId); }
 	public void sendReliableRealTimeMessageToAll(byte[] messageData, String roomId) { mMultiplayer.sendReliableRealTimeMessageToAll(messageData, roomId); }
+	// Turn Based Multiplayer:
+	public String getCurrMatchId() { return mTBMultiplayer.getCurrMatchId(); }
+	public String getCurrMatchParticipantDN(int participantNumber) { return mTBMultiplayer.getCurrMatchParticipantDN(participantNumber); } 	
+	public String[] getCurrMatchParticipantsId() { return mTBMultiplayer.getCurrMatchParticipantsId(); } 	
+	public String getCurrMatchLastUpdatedParticipantId() { return mTBMultiplayer.getCurrMatchLastUpdatedParticipantId(); }
+	public String getCurrMatchData() { return mTBMultiplayer.getCurrMatchData(); }
+	public void displayGameInbox(){ mTBMultiplayer.displayGameInbox(); }
+	public void startMatchClicked(){ mTBMultiplayer.startMatchClicked(); }
+	public void startMatchClicked(int minPlayers, int maxPlayers){ mTBMultiplayer.startMatchClicked(minPlayers, maxPlayers); } 
+	public void startQuickMatch() { mTBMultiplayer.startQuickMatch(); }
+	public void cancelGame() { mTBMultiplayer.cancelGame(); } 
+	public void leaveGameOnYourTurn() { mTBMultiplayer.leaveGameOnYourTurn(); }
+	public void finishGame() { mTBMultiplayer.finishGame(); }
+	public void uploadNewGameState(String newDataSentFromUnity) { mTBMultiplayer.uploadNewGameState(newDataSentFromUnity); }
 }

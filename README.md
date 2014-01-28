@@ -2,21 +2,31 @@ This repository contains the necessary code to build a Unity3D plugin.
 This plugin adds to the Unity3D game engine all of the Google Play Game Services funcionality.
 
 These are:
+	*SignIn - SignOut
 	*LeaderBoard
 	*Achievements
 	*Cloud Save
-	*Multiplayer
+	*Multiplayer P2P
+	*Turn Base Multiplayer
 
 Important Note:
-The GPGS API has been build to allow multiplayer functionality by sending P2P (peer 2 peer) messages only. Therefore, both players have to be connected at the same time.
-This means that multiplayer games with a turn-based gameplay functionality will require another approach.
+Make sure you have the latest google-play-services library to access to the latest Turn Based Multiplayer funcionality.
 
-From Google Documentation:
-You can send messages only when your GamesClient is connected to the room, and only to participants who are also connected to the room. Messages that you send when you're not connected or when the recipient is not connected will not be delivered.
+Also, Google is currently working on a similar plugin. 
+Their plugin doesn't have the Multiplayer P2P and Turn Base Funcionality yet, but I'm sure it won't be long.
 
-Also, Google is currently working on a similar plugin.
+At this moment, I have yet to upload the C# part of the plugin.
+You may request it to me if you need it.
 
-At this moment, I have yet to upload the C# part of the plugin. 
+For this pluging to work, you will need to add in your Unity3D project / Assets/Plugins/Android folder:
+	- Your Android Manifest file (AndroidManifest.xml)
+	- The android suport library (android-support-v4.jar)
+	- The latest google play services library (google-play-services.jar)
+	- This plugin library (a jar file with all java clases in it: gpgs-XXX-plugin.jar)
+
+Any doubts on how to use it, drop me a line.
+ 
 
 This code strictly follows the Google Documentation.
+
 This code has been written by Marcos Zalacain.

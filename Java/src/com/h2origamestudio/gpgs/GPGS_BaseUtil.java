@@ -3,6 +3,10 @@ package com.h2origamestudio.gpgs;
 import android.util.Log;
 import com.unity3d.player.UnityPlayer;
 
+/**
+ *  This class contains a few common methods and variables.
+ *  @author Marcos Zalacain
+ */
 public class GPGS_BaseUtil {
 
 	// We declare a TAG constant to follow debug convention.

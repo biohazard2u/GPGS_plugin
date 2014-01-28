@@ -17,7 +17,7 @@ public class GPGS_CloudSave extends GPGS_BaseUtil implements OnStateLoadedListen
 	//private static String TAG = "GPGS_CloudSave";
 
 	// PluginAdapter reference. 
-	GPGS_PluginAdapter adapter;			// We are NOT using the adapter at this moment!
+	GPGS_PluginAdapter adapter = GPGS_PluginAdapter.mCurrentGPGSAdapter;
 
 	AppStateClient mAppStateClient = null;
 
@@ -26,14 +26,6 @@ public class GPGS_CloudSave extends GPGS_BaseUtil implements OnStateLoadedListen
 	public byte[] mKey1Data = null;
 	public byte[] mKey2Data = null;
 	public byte[] mKey3Data = null;
-
-	/**
-	 * Constructor 
-	 * @param adapter - a reference to the GPGS_PluginAdapter.
-	 */
-	GPGS_CloudSave(GPGS_PluginAdapter adapter) {
-		this.adapter = adapter;
-	}	
 
 	/**
 	 * Our method to load from cloud. 
@@ -201,6 +193,5 @@ public class GPGS_CloudSave extends GPGS_BaseUtil implements OnStateLoadedListen
 	private void unsucunsuccessfulLoading(int statusCode, int stateKey){
 		UnitySendMessageSafe("OnGPGCloudLoadResult", "error;" + stateKey + ";0");
 		debugLog("Error in loading key data " + statusCode + " " + stateKey);
-		//return;
 	} 
 }

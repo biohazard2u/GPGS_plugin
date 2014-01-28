@@ -6,24 +6,20 @@ import com.google.android.gms.games.achievement.AchievementBuffer;
 import com.google.android.gms.games.achievement.OnAchievementUpdatedListener;
 import com.google.android.gms.games.achievement.OnAchievementsLoadedListener;
 
+/**
+ * This class is to allow turned based manage the achievements functionality into Unity3D Game Engine.	 * 
+ * @author Marcos Zalacain 
+ */
 public class GPGS_Achievements extends GPGS_BaseUtil implements OnAchievementUpdatedListener {
 
 	// We declare a TAG constant to follow debug convention.
 	//private static String TAG = "GPGS_Achievements";		
 
 	// PluginAdapter reference. 
-	GPGS_PluginAdapter adapter; 
+	GPGS_PluginAdapter adapter = GPGS_PluginAdapter.mCurrentGPGSAdapter;
 
 	// Data structure providing access to a list of achievements. 
 	AchievementBuffer mAchievements = null;	
-	 
-	/**
-	 * Constructor
-	 * @param adapter - a reference to the GPGS_PluginAdapter.
-	 */
-	GPGS_Achievements(GPGS_PluginAdapter adapter){
-		this.adapter = adapter;
-	}	
 
 	/**
 	 * Our method to unlock Achievement Immediate.
@@ -109,6 +105,7 @@ public class GPGS_Achievements extends GPGS_BaseUtil implements OnAchievementUpd
 
 	/**
 	 * Our method to show Achievements.
+	 * Note that we don't care at this moment about the result of the activity we're launching with startActivityForResult.
 	 */
 	public void showAchievements() {
 		if (!adapter.mSignedIn)
